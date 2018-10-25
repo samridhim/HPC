@@ -17,7 +17,7 @@ __global__ void FindSum(float* input, float *output,int n)
 	__shared__ int sh[BLOCK_SIZE];		
 	int myId = threadIdx.x + blockDim.x * blockIdx.x;
   	int tid = threadIdx.x;
-	if(tid<n)
+	if(tid<BLOCK_SIZE)
 	sh[tid] = input[myId];
 	else
 	sh[tid] = 0;
@@ -41,17 +41,11 @@ int main(int argc, char *argv[])
 	time_t t;
 	srand((unsigned) time(&t));
 	int actual_n = N;
-	while((N & (N-1)) !=0){
-	N = N +1;
-	}
 	float *h;
 	h = (float*)malloc(N*sizeof(float));
-	for(int i=0; i<N; i++)
+	for(int i=0; i<actual_n; i++)
 	{
-		if(i<actual_n)
-		h[i] = i+1;
-		else
-		h[i] = 0;
+		h[i] = 10;
 	}
 	printf("\n");
         printf("Elements #: %d\n", actual_n);
@@ -62,12 +56,14 @@ int main(int argc, char *argv[])
 	{
 	num_blocks = 1;
 	}
+	else if(N%BLOCK_SIZE!=0)
+	num_blocks= N/BLOCK_SIZE +1;	
 	else
-	num_blocks= N/BLOCK_SIZE;
+	num_blocks = N/BLOCK_SIZE;
 	cudaMemcpy(d, h, N*sizeof(float), cudaMemcpyHostToDevice);
 	cudaMalloc(&d_temp, num_blocks*sizeof(float));
         cudaMalloc(&d_final, num_blocks*sizeof(float));
-	FindSum<<<num_blocks, BLOCK_SIZE>>>(d, d_temp,actual_n);
+	FindSum<<<num_blocks, BLOCK_SIZE>>>(d, d_temp,num_blocks);
 	FindSum <<<num_blocks, BLOCK_SIZE>>>(d_temp,d_final,num_blocks);
 	float *result;
 	result = (float*)malloc(sizeof(float));
